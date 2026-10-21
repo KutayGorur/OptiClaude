@@ -10,7 +10,7 @@ A lean, tested starter kit for [Claude Code](https://code.claude.com/docs). One 
 - verify, handoff and lesson skills,
 - a cheap log-reading subagent,
 - a format hook,
-- and a status line that shows context, cost and cache use.
+- and a terminal status line that shows context, cost and cache use.
 
 It installs **no** plugins, MCP servers or third-party frameworks. Everything it adds is plain Claude Code configuration that you can read and edit.
 
@@ -30,6 +30,8 @@ bash setup.sh --global
 ```
 
 This adds `/opticlaude-setup` and a status line to `~/.claude`. Restart Claude Code afterwards.
+
+> **The status line appears in the terminal version of Claude Code** (run `claude` in a terminal), at the bottom under the prompt. The Claude desktop app doesn't show it. Desktop has its own context and usage displays instead: see [the tutorial](docs/TUTORIAL.md#the-status-line). `/opticlaude-setup` works in both.
 
 ## Set up a project
 
@@ -58,7 +60,7 @@ It installs nothing and commits nothing. You can also skip the install and paste
 | `/lesson [what went wrong]` | Turns a correction into one line in the right place and keeps CLAUDE.md lean | Mistakes don't repeat |
 | `log-digger` subagent | Haiku reads big logs or test output and returns at most 30 relevant lines | Keeps the main context small and cheap |
 | `.claude/hooks/format-edited.sh` | Formats only the file just edited. Never blocks Claude. Added only if the project has a formatter | Deterministic, and costs no model tokens |
-| Status line (global) | `myapp \| Opus (high) \| ctx 23% 234k \| $0.41 \| cache 91% \| 5h 24%`. Context turns yellow at 200k tokens and red at 350k | See when to compact or clear |
+| Status line (global, terminal CLI) | `myapp \| Opus (high) \| ctx 23% 234k \| $0.41 \| cache 91% \| 5h 24%`. Context turns yellow at 200k tokens and red at 350k. Not shown in the desktop app | See when to compact or clear |
 | `/opticlaude-setup` (global) | The bootstrap command, generated from [BOOTSTRAP-PROMPT.md](BOOTSTRAP-PROMPT.md) | |
 
 The skills are manual-only (`disable-model-invocation: true`), so they cost no context until you type them.
