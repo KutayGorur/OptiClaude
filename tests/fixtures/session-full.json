@@ -1,0 +1,11 @@
+{
+  "cwd": "C:\\code\\myapp",
+  "session_id": "test",
+  "model": { "id": "claude-opus-5-5", "display_name": "Opus" },
+  "workspace": { "current_dir": "C:\\code\\myapp" },
+  "cost": { "total_cost_usd": 0.41234 },
+  "context_window": { "context_window_size": 1000000, "used_percentage": 23.4, "current_usage": { "input_tokens": 8500 } },
+  "prompt_cache": { "warm": true, "caching_observed": true, "hit_ratio": 0.91 },
+  "effort": { "level": "high" },
+  "rate_limits": { "five_hour": { "used_percentage": 23.5 } }
+}

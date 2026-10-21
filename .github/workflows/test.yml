@@ -1,0 +1,34 @@
+name: test
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  bash:
+    name: setup.sh / statusline.sh / hook (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run bash tests
+        shell: bash
+        run: bash tests/test.sh
+
+  powershell:
+    name: setup.ps1 / statusline.ps1 (Windows)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Windows PowerShell 5.1
+        shell: powershell
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File tests/test.ps1
+      - name: PowerShell 7
+        shell: pwsh
+        run: pwsh -NoProfile -File tests/test.ps1
