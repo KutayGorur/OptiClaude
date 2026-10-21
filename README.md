@@ -1,4 +1,8 @@
-# OptiClaude
+<p align="center">
+  <img src="docs/logo.png" alt="OptiClaude logo" width="160">
+</p>
+
+<h1 align="center">OptiClaude</h1>
 
 A lean, tested starter kit for [Claude Code](https://code.claude.com/docs). One command sets up any project with:
 - a short CLAUDE.md containing only **commands that were actually run**,
