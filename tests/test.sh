@@ -13,6 +13,18 @@ fail() { FAIL=$((FAIL + 1)); echo "  FAIL  $1"; }
 check() { local name="$1"; shift; if "$@" >/dev/null 2>&1; then pass "$name"; else fail "$name"; fi; }
 strip_ansi() { sed "s/$(printf '\033')\[[0-9;]*m//g" | tr -d '\r'; }
 snapshot() { (cd "$1" && find . -type f ! -path './.git/*' -print | LC_ALL=C sort | while read -r f; do cksum "$f"; done); }
+# Byte-exact helpers: grep and awk on Git Bash for Windows silently drop CR characters, so use tr and printf.
+count_cr() { tr -cd '\r' < "$1" | wc -c | tr -d ' '; }
+# Write $1's content to $2 with the opposite line endings (CRLF <-> LF), so the bytes differ but the text doesn't.
+flip_eol() {
+  if [ "$(count_cr "$1")" -gt 0 ]; then tr -d '\r' < "$1" > "$2"
+  else
+    local line out=""
+    while IFS= read -r line || [ -n "$line" ]; do out="$out$line"$'\r\n'; done < "$1"
+    printf '%s' "$out" > "$2"
+  fi
+}
+has_line() { printf '%s' "$1" | grep -q -E "$2"; }
 
 PY=""
 if command -v python3 >/dev/null 2>&1 && python3 -c 'import json' >/dev/null 2>&1; then PY=python3
@@ -48,12 +60,28 @@ for MODE in "${MODES[@]}"; do
   missing=0; for f in "${PROJECT_FILES[@]}"; do [ -f "$W/fresh/$f" ] || missing=1; done
   check "fresh project gets all 7 files" test "$missing" -eq 0
   check "CLAUDE.md comes from the template" cmp -s "$W/fresh/CLAUDE.md" "$ROOT/templates/project/CLAUDE.template.md"
-  check "hook script is LF-only" bash -c "! grep -q \$'\\r' '$W/fresh/.claude/hooks/format-edited.sh'"
+  check "hook script is LF-only" test "$(count_cr "$W/fresh/.claude/hooks/format-edited.sh")" -eq 0
 
   # Re-run is idempotent
   before="$(snapshot "$W/fresh")"; out="$(setup --target "$W/fresh")"
   check "re-run changes nothing" test "$before" = "$(snapshot "$W/fresh")"
   check "re-run reports nothing created" bash -c "! printf '%s' \"\$1\" | grep -q 'created'" _ "$out"
+
+  # Line endings: a kit file differing only in CRLF/LF is unchanged; a real edit is skipped, or replaced with --force
+  E="$W/eol"; mkdir -p "$E"; setup --target "$E" >/dev/null
+  TPL_GO="$ROOT/templates/project/.claude/skills/go/SKILL.md"; GO="$E/.claude/skills/go/SKILL.md"
+  flip_eol "$TPL_GO" "$GO"
+  check "eol: precondition, file differs byte-wise" bash -c "! cmp -s '$TPL_GO' '$GO'"
+  out="$(setup --target "$E" --force)"
+  check "eol: line-ending-only difference is unchanged" has_line "$out" 'unchanged +\.claude/skills/go/SKILL\.md'
+  check "eol: line-ending-only file is not rewritten" bash -c "! cmp -s '$TPL_GO' '$GO'"
+  printf '\nlocal edit\n' >> "$GO"
+  out="$(setup --target "$E")"
+  check "eol: real edit is skipped without --force" has_line "$out" 'skipped +\.claude/skills/go/SKILL\.md'
+  out="$(setup --target "$E" --force)"
+  check "eol: real edit is replaced with --force" has_line "$out" 'replaced +\.claude/skills/go/SKILL\.md'
+  check "eol: --force restored the template" cmp -s "$TPL_GO" "$GO"
+  check "eol: --force kept a backup of the edit" test -n "$(grep -rl 'local edit' "$E/.claude/backup" 2>/dev/null)"
 
   # Existing git project: CLAUDE.md kept, settings merged, git files appended once
   P="$W/existing"; mkdir -p "$P/.claude"
@@ -90,6 +118,15 @@ for MODE in "${MODES[@]}"; do
   fi
   before="$(snapshot "$U")"; setup --global --user-dir "$U" >/dev/null
   check "global: re-run changes nothing" test "$before" = "$(snapshot "$U")"
+
+  # Global files that differ only in line endings count as unchanged (no backup, no rewrite)
+  U3="$W/home-eol"; setup --global --user-dir "$U3" >/dev/null
+  flip_eol "$ROOT/templates/user/$SL" "$U3/$SL"
+  SK="$U3/skills/opticlaude-setup/SKILL.md"; flip_eol "$SK" "$TMP/skill.flipped"; mv -f "$TMP/skill.flipped" "$SK"
+  out="$(setup --global --user-dir "$U3" --force)"
+  check "global eol: status line is unchanged" has_line "$out" "unchanged +$SL"
+  check "global eol: skill is unchanged" has_line "$out" 'unchanged +skills/opticlaude-setup/SKILL\.md'
+  check "global eol: no backup made" test ! -d "$U3/backup"
 
   # Existing status line is kept unless --force
   U2="$W/home2"; mkdir -p "$U2"

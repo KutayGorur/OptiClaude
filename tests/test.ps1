@@ -20,6 +20,12 @@ function Snapshot([string]$dir) {
         Sort-Object FullName | ForEach-Object { $_.FullName.Substring($dir.Length) + ' ' + (Get-FileHash -LiteralPath $_.FullName).Hash }
 }
 function Json([string]$path) { return ([System.IO.File]::ReadAllText($path) | ConvertFrom-Json) }
+# Write $src's text to $dst with the opposite line endings (CRLF <-> LF): bytes differ, text doesn't.
+function Flip-Eol([string]$src, [string]$dst) {
+    $t = [System.IO.File]::ReadAllText($src)
+    if ($t.Contains("`r")) { $t = $t -replace "`r", '' } else { $t = $t -replace "`n", "`r`n" }
+    [System.IO.File]::WriteAllText($dst, $t, (New-Object System.Text.UTF8Encoding $false))
+}
 function StripAnsi([string]$s) { return ($s -replace "$([char]27)\[[0-9;]*m", '').Trim() }
 function StatusLine([string]$fixture) {
     return ([System.IO.File]::ReadAllText((Join-Path $Fix $fixture)) | & $PS -NoProfile -ExecutionPolicy Bypass -File (Join-Path $Root 'templates\user\statusline.ps1') | Out-String)
@@ -42,6 +48,23 @@ try {
     $before = Snapshot $fresh; $out = Setup -Target $fresh
     Check 're-run changes nothing' { (Compare-Object @(Snapshot $fresh) @($before)) -eq $null }
     Check 're-run reports nothing created' { $out -notmatch 'created' }
+
+    # Line endings: a kit file differing only in CRLF/LF is unchanged; a real edit is skipped, or replaced with -Force
+    $e = Join-Path $Tmp 'eol'; New-Item -ItemType Directory -Path $e | Out-Null
+    Setup -Target $e | Out-Null
+    $tplGo = Join-Path $Root 'templates\project\.claude\skills\go\SKILL.md'; $go = Join-Path $e '.claude\skills\go\SKILL.md'
+    Flip-Eol $tplGo $go
+    Check 'eol: precondition, file differs byte-wise' { (Get-FileHash $tplGo).Hash -ne (Get-FileHash $go).Hash }
+    $out = Setup -Target $e -Force
+    Check 'eol: line-ending-only difference is unchanged' { $out -match 'unchanged\s+\.claude/skills/go/SKILL\.md' }
+    Check 'eol: line-ending-only file is not rewritten' { (Get-FileHash $tplGo).Hash -ne (Get-FileHash $go).Hash }
+    [System.IO.File]::AppendAllText($go, "`nlocal edit`n")
+    $out = Setup -Target $e
+    Check 'eol: real edit is skipped without -Force' { $out -match 'skipped\s+\.claude/skills/go/SKILL\.md' }
+    $out = Setup -Target $e -Force
+    Check 'eol: real edit is replaced with -Force' { $out -match 'replaced\s+\.claude/skills/go/SKILL\.md' }
+    Check 'eol: -Force restored the template' { (Get-FileHash $tplGo).Hash -eq (Get-FileHash $go).Hash }
+    Check 'eol: -Force kept a backup of the edit' { @(Get-ChildItem (Join-Path $e '.claude\backup') -Recurse -File | Where-Object { [System.IO.File]::ReadAllText($_.FullName) -match 'local edit' }).Count -ge 1 }
 
     $p = Join-Path $Tmp 'existing'; New-Item -ItemType Directory -Path (Join-Path $p '.claude') | Out-Null
     & git -C $p init -q
@@ -71,6 +94,16 @@ try {
     Check 'global: skill is manual-only' { $skill -match '(?m)^disable-model-invocation: true' }
     $before = Snapshot $u; Setup -Global -UserDir $u | Out-Null
     Check 'global: re-run changes nothing' { (Compare-Object @(Snapshot $u) @($before)) -eq $null }
+
+    # Global files that differ only in line endings count as unchanged (no backup, no rewrite)
+    $u3 = Join-Path $Tmp 'home-eol'
+    Setup -Global -UserDir $u3 | Out-Null
+    Flip-Eol (Join-Path $Root 'templates\user\statusline.ps1') (Join-Path $u3 'statusline.ps1')
+    $sk = Join-Path $u3 'skills\opticlaude-setup\SKILL.md'; Flip-Eol $sk "$sk.tmp"; Move-Item -Force "$sk.tmp" $sk
+    $out = Setup -Global -UserDir $u3 -Force
+    Check 'global eol: status line is unchanged' { $out -match 'unchanged\s+statusline\.ps1' }
+    Check 'global eol: skill is unchanged' { $out -match 'unchanged\s+skills/opticlaude-setup/SKILL\.md' }
+    Check 'global eol: no backup made' { -not (Test-Path -LiteralPath (Join-Path $u3 'backup')) }
 
     $u2 = Join-Path $Tmp 'home2'; New-Item -ItemType Directory -Path $u2 | Out-Null
     [System.IO.File]::WriteAllText((Join-Path $u2 'settings.json'), '{"statusLine":{"type":"command","command":"echo mine"},"theme":"dark"}')

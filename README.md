@@ -70,7 +70,7 @@ The skills are manual-only (`disable-model-invocation: true`), so they cost no c
 | `-Target <dir>` | `--target <dir>` | Install the project files. This is the default (current folder) when you pass neither target nor global |
 | `-Global` | `--global` | Install the status line and `/opticlaude-setup` into the user folder |
 | `-UserDir <dir>` | `--user-dir <dir>` | Use a different user folder (default `~/.claude`) |
-| `-Force` | `--force` | Replace kit files that already exist (they're backed up first) |
+| `-Force` | `--force` | Replace kit files that you've changed (they're backed up first) |
 | `-DryRun` | `--dry-run` | Show what would change, and write nothing |
 
 **Guarantees** (covered by the tests):
@@ -78,6 +78,7 @@ The skills are manual-only (`disable-model-invocation: true`), so they cost no c
 - `settings.json` is merged: permission lists are combined, every other key is kept, and a backup is written to `.claude/backup/<timestamp>/` or `~/.claude/backup/` first.
 - An existing `statusLine` is kept unless you pass `-Force`.
 - Re-running is idempotent.
+- Files that differ only in line endings (CRLF vs LF, common with Git on Windows) count as unchanged.
 
 ## Uninstall
 

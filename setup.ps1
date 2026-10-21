@@ -65,6 +65,10 @@ function Backup-File([string]$path, [string]$backupRoot, [string]$rel) {
     Copy-Item -LiteralPath $path -Destination $dest -Force
 }
 
+# File text with CR characters removed, so CRLF and LF checkouts of the same file compare equal.
+function Read-Normalized([string]$path) { return ([System.IO.File]::ReadAllText($path) -replace "`r", '') }
+function Test-SameContent([string]$a, [string]$b) { return ((Read-Normalized $a) -ceq (Read-Normalized $b)) }
+
 function Read-Json([string]$path) {
     $text = [System.IO.File]::ReadAllText($path)
     if ($text.Trim().Length -eq 0) { return New-Object PSObject }
@@ -162,14 +166,13 @@ function Install-Project([string]$targetDir) {
                 Note 'merged' "$relShown (backup in .claude/backup/$Stamp)"
             }
         }
+        elseif (Test-SameContent $dest $_.FullName) {
+            Note 'unchanged' $relShown
+        }
         elseif ($Force) {
-            $same = ((Get-FileHash -LiteralPath $dest).Hash -eq (Get-FileHash -LiteralPath $_.FullName).Hash)
-            if ($same) { Note 'unchanged' $relShown }
-            else {
-                Backup-File $dest $backupRoot $rel
-                Copy-FileSafe $_.FullName $dest
-                Note 'replaced' "$relShown (backup in .claude/backup/$Stamp)"
-            }
+            Backup-File $dest $backupRoot $rel
+            Copy-FileSafe $_.FullName $dest
+            Note 'replaced' "$relShown (backup in .claude/backup/$Stamp)"
         }
         else {
             Note 'skipped' "$relShown (exists; use -Force to replace)"
@@ -195,7 +198,7 @@ function Install-Global([string]$userDir) {
     $slSrc = Join-Path $Kit 'templates\user\statusline.ps1'
     $slDest = Join-Path $userFull 'statusline.ps1'
     if (-not (Test-Path -LiteralPath $slDest)) { Copy-FileSafe $slSrc $slDest; Note 'created' 'statusline.ps1' }
-    elseif ((Get-FileHash -LiteralPath $slDest).Hash -eq (Get-FileHash -LiteralPath $slSrc).Hash) { Note 'unchanged' 'statusline.ps1' }
+    elseif (Test-SameContent $slDest $slSrc) { Note 'unchanged' 'statusline.ps1' }
     elseif ($Force) { Backup-File $slDest $backupRoot 'statusline.ps1'; Copy-FileSafe $slSrc $slDest; Note 'replaced' 'statusline.ps1' }
     else { Note 'skipped' 'statusline.ps1 (exists; use -Force to replace)' }
 
@@ -235,7 +238,7 @@ function Install-Global([string]$userDir) {
     $skill = "---`nname: opticlaude-setup`ndescription: Set up the current project with the OptiClaude starter kit (lean CLAUDE.md, permissions, /go /handoff /lesson skills, format hook).`ndisable-model-invocation: true`n---`n" + ($body -replace "`r`n", "`n")
     $skillDest = Join-Path $userFull 'skills\opticlaude-setup\SKILL.md'
     if (-not (Test-Path -LiteralPath $skillDest)) { Write-TextFile $skillDest $skill; Note 'created' 'skills/opticlaude-setup/SKILL.md' }
-    elseif ([System.IO.File]::ReadAllText($skillDest) -eq $skill) { Note 'unchanged' 'skills/opticlaude-setup/SKILL.md' }
+    elseif ((Read-Normalized $skillDest) -ceq ($skill -replace "`r", '')) { Note 'unchanged' 'skills/opticlaude-setup/SKILL.md' }
     else {
         Backup-File $skillDest $backupRoot 'skills\opticlaude-setup\SKILL.md'
         Write-TextFile $skillDest $skill

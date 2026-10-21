@@ -40,7 +40,8 @@ note() { local s="$1"; [ "$DRY" -eq 1 ] && s="would-$s"; LOG+=("$(printf '%-16s 
 mk_parent() { [ "$DRY" -eq 1 ] || mkdir -p "$(dirname "$1")"; }
 copy_file() { [ "$DRY" -eq 1 ] && return 0; mk_parent "$2"; cp -f "$1" "$2"; }
 backup_file() { [ "$DRY" -eq 1 ] && return 0; mk_parent "$2/$3"; cp -f "$1" "$2/$3"; }
-same_file() { cmp -s "$1" "$2"; }
+# Same content, ignoring CR characters (so CRLF and LF checkouts of a file compare equal).
+same_file() { cmp -s <(tr -d '\r' < "$1") <(tr -d '\r' < "$2"); }
 
 JSON_TOOL=""
 case "${OPTICLAUDE_JSON_TOOL:-auto}" in
@@ -168,9 +169,10 @@ install_project() {
         [ "$DRY" -eq 1 ] || printf '%s\n' "$merged" > "$dest"
         note merged "$rel (backup in .claude/backup/$STAMP)"
       fi
+    elif same_file "$src" "$dest"; then
+      note unchanged "$rel"
     elif [ "$FORCE" -eq 1 ]; then
-      if same_file "$src" "$dest"; then note unchanged "$rel"
-      else backup_file "$dest" "$backup_root" "$rel"; copy_file "$src" "$dest"; note replaced "$rel (backup in .claude/backup/$STAMP)"; fi
+      backup_file "$dest" "$backup_root" "$rel"; copy_file "$src" "$dest"; note replaced "$rel (backup in .claude/backup/$STAMP)"
     else
       note skipped "$rel (exists; use --force to replace)"
     fi
