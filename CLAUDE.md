@@ -28,7 +28,8 @@ Starter kit for Claude Code projects. It has two installers, `setup.ps1` (Window
 
 ## Conventions that differ from the defaults
 - No personal paths, names or emails in the repo. Examples use placeholders like `C:\code\myapp`.
-- Skills in `templates/` stay manual-only (`disable-model-invocation: true`) so they cost no context.
+- Skills in `templates/` stay manual-only (`disable-model-invocation: true`) so they cost no context. The one exception is `auto-lesson`, which Claude has to start itself.
+- Claude Code also loads the skills under `templates/project/.claude/skills/` while you edit files there, so `auto-lesson` can fire in this repo's own sessions.
 
 # Compact instructions
 When compacting, keep: modified files, failing tests and commands, decisions made, and open TODOs.

@@ -55,7 +55,7 @@ If the Kit folder line above still says `<path to this repo>`, ask the user wher
    - Test the hook: pipe `{"tool_input":{"file_path":"<absolute path of an already-formatted source file>"}}` into the script. Confirm it exits 0 and leaves the file unchanged.
    - On Windows without bash, write an equivalent PowerShell script instead, and set `"shell": "powershell"` on the hook.
    - If the project has no formatter, delete `format-edited.sh` and add no hook.
-7. **Leave the skills mostly alone.** `/go`, `/handoff`, `/lesson` and the `log-digger` agent work as installed. Only edit `.claude/skills/go/SKILL.md` if this project has a special verification step, such as an e2e command, and keep that edit to a line or two.
+7. **Leave the skills mostly alone.** `/go`, `/handoff`, `/lesson`, `auto-lesson` and the `log-digger` and `lesson-finder` agents work as installed. Only edit `.claude/skills/go/SKILL.md` if this project has a special verification step, such as an e2e command, and keep that edit to a line or two.
 8. **Validate.**
    - Parse `.claude/settings.json` as JSON, with `python -m json.tool` or PowerShell `Get-Content -Raw .claude/settings.json | ConvertFrom-Json`.
    - Confirm no `{{` remains in CLAUDE.md, and report its line count.

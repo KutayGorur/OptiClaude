@@ -1,12 +1,19 @@
 ---
 name: lesson
-description: Record a correction so the same mistake doesn't happen again. Adds one line to the right place and keeps CLAUDE.md lean.
+description: Record a mistake and its fix as one line in the right place, so it doesn't happen again. With no argument, a cheap Haiku subagent finds the recent mistakes in this session's transcript.
 disable-model-invocation: true
 argument-hint: "[what went wrong]"
 ---
-The user just corrected you. What went wrong: $ARGUMENTS. If that's empty, work it out from the last few turns.
+Record a lesson. What went wrong: $ARGUMENTS
 
-1. Write the lesson as one specific, imperative line that says what to do. Leave out the story of what happened.
+## Finding the mistake
+- **If nothing follows "What went wrong:" above**, don't reconstruct the mistakes yourself. Start the `lesson-finder` subagent and give it this session ID: ${CLAUDE_SESSION_ID}
+  - It returns up to 3 candidate lessons. Check each against what you remember of this session, and drop any that are wrong or not worth keeping.
+  - If it found nothing worth keeping, say so and stop.
+- **Otherwise** the user told you the problem. Work out its fix from the last few turns.
+
+## Saving a lesson
+1. Write each lesson as one line that names the trap and says what to do instead, for example "On Git Bash, `grep` and `awk` drop CR characters: use `tr` and `printf` for byte-exact checks." Leave out the story of what happened.
 2. Put the line in the right place:
    - A trap that applies across the repo goes under "Gotchas" in CLAUDE.md.
    - A lesson that only matters for one workflow goes in that skill's SKILL.md.

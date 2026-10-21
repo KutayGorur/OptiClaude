@@ -45,8 +45,9 @@ command -v jq >/dev/null 2>&1 && MODES+=(jq)
 MODES+=(none)
 [ -n "$PY" ] || echo "note: python not found, JSON content checks are skipped"
 
-PROJECT_FILES=(CLAUDE.md .claude/settings.json .claude/agents/log-digger.md .claude/hooks/format-edited.sh
-  .claude/skills/go/SKILL.md .claude/skills/handoff/SKILL.md .claude/skills/lesson/SKILL.md)
+PROJECT_FILES=(CLAUDE.md .claude/settings.json .claude/agents/log-digger.md .claude/agents/lesson-finder.md
+  .claude/hooks/format-edited.sh .claude/skills/go/SKILL.md .claude/skills/handoff/SKILL.md
+  .claude/skills/lesson/SKILL.md .claude/skills/auto-lesson/SKILL.md)
 
 for MODE in "${MODES[@]}"; do
   echo "== setup.sh (JSON tool: $MODE)"
@@ -60,7 +61,7 @@ for MODE in "${MODES[@]}"; do
   # Fresh project
   mkdir -p "$W/fresh"; setup --target "$W/fresh" >/dev/null
   missing=0; for f in "${PROJECT_FILES[@]}"; do [ -f "$W/fresh/$f" ] || missing=1; done
-  check "fresh project gets all 7 files" test "$missing" -eq 0
+  check "fresh project gets all ${#PROJECT_FILES[@]} files" test "$missing" -eq 0
   check "CLAUDE.md comes from the template" cmp -s "$W/fresh/CLAUDE.md" "$ROOT/templates/project/CLAUDE.template.md"
   check "hook script is LF-only" test "$(count_cr "$W/fresh/.claude/hooks/format-edited.sh")" -eq 0
 
@@ -199,6 +200,26 @@ if [ -n "$PY" ]; then
   check "hook snippet matches Edit|Write" json_eval "$SNIP" 'd["hooks"]["PostToolUse"][0]["matcher"] == "Edit|Write"'
   check "hook snippet keeps the project-dir variable" json_eval "$SNIP" '"${CLAUDE_PROJECT_DIR}/.claude/hooks/format-edited.sh" in d["hooks"]["PostToolUse"][0]["hooks"][0]["command"]'
 fi
+
+echo "== skills and agents"
+SK="$ROOT/templates/project/.claude/skills"; AG="$ROOT/templates/project/.claude/agents"
+for f in "$SK"/*/SKILL.md; do
+  n="$(basename "$(dirname "$f")")"
+  [ "$n" = auto-lesson ] && continue
+  check "skill $n is manual-only" grep -qx 'disable-model-invocation: true' "$f"
+done
+AUTO="$SK/auto-lesson/SKILL.md"; LESSON="$SK/lesson/SKILL.md"; FINDER="$AG/lesson-finder.md"
+check "auto-lesson exists" test -f "$AUTO"
+check "auto-lesson is model-invocable" bash -c "test -f '$AUTO' && ! grep -q '^disable-model-invocation: true' '$AUTO'"
+check "auto-lesson is hidden from the / menu" grep -qx 'user-invocable: false' "$AUTO"
+check "auto-lesson has no \$ tokens to expand" bash -c "test -f '$AUTO' && ! grep -q '[\$]' '$AUTO'"
+check "auto-lesson names a section lesson has" bash -c "grep -q '\"Saving a lesson\" section' '$AUTO' && grep -qx '## Saving a lesson' '$LESSON'"
+check "lesson uses lesson-finder" grep -q '`lesson-finder` subagent' "$LESSON"
+check "lesson passes the session ID" grep -qF 'session ID: ${CLAUDE_SESSION_ID}' "$LESSON"
+check "lesson-finder exists" test -f "$FINDER"
+check "lesson-finder name matches its file" grep -qx 'name: lesson-finder' "$FINDER"
+check "lesson-finder runs on haiku" grep -qx 'model: haiku' "$FINDER"
+check "lesson-finder can't edit files" bash -c "grep -q '^tools: ' '$FINDER' && ! grep -E '^tools: .*(Edit|Write)' '$FINDER'"
 
 echo "== syntax"
 for f in "$ROOT/setup.sh" "$SLS" "$HOOK" "$ROOT/tests/test.sh"; do check "bash -n $(basename "$f")" bash -n "$f"; done

@@ -17,7 +17,7 @@
 - If something could not be verified, say exactly what and why.
 
 ## Gotchas
-<!-- Non-obvious, repo-specific traps only, one line each. Add new ones with /lesson. -->
+<!-- Non-obvious, repo-specific traps only, one line each. /lesson adds new ones, and Claude adds them itself through auto-lesson. -->
 - {{GOTCHA or delete this line}}
 
 ## Conventions that differ from the defaults

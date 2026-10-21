@@ -7,8 +7,8 @@
 A lean, tested starter kit for [Claude Code](https://code.claude.com/docs). One command sets up any project with:
 - a short CLAUDE.md containing only **commands that were actually run**,
 - safe permissions,
-- verify, handoff and lesson skills,
-- a cheap log-reading subagent,
+- verify, handoff and lesson skills, plus lessons Claude saves on its own after fixing a mistake,
+- cheap Haiku subagents that read logs and find recent mistakes,
 - a format hook,
 - and a terminal status line that shows context, cost and cache use.
 
@@ -57,13 +57,15 @@ It installs nothing and commits nothing. You can also skip the install and paste
 | `.claude/settings.json` | Allows your verified test, lint and build commands. Stops Claude's file tools from reading `.env*` files (except the example ones), `*.pem` files and `secrets/**` | Fewer prompts without skipping permissions |
 | `/go [pr]` | Verify end to end → `/simplify` → report evidence. With `pr`: commit and open a PR | Letting Claude check its own work is the biggest quality lever |
 | `/handoff` | Writes `.claude/handoff.md`, so you can `/clear` and continue in a fresh context | Context quality drops as the window fills |
-| `/lesson [what went wrong]` | Turns a correction into one line in the right place and keeps CLAUDE.md lean | Mistakes don't repeat |
+| `/lesson [what went wrong]` | Saves a mistake and its fix as one line in the right place and keeps CLAUDE.md lean. With no argument, `lesson-finder` finds the recent mistakes for you | Mistakes don't repeat |
+| `auto-lesson` skill | Claude starts it on its own right after it fixes a mistake worth remembering (you corrected it, or the same approach failed twice). It saves the line and tells you in one line. Hidden from the `/` menu | You don't have to remember to run `/lesson` |
+| `lesson-finder` subagent | Haiku searches the session transcript for failed tool calls and your corrections, and returns up to 3 lessons, each with the fix that worked | The expensive model doesn't spend tokens digging |
 | `log-digger` subagent | Haiku reads big logs or test output and returns at most 30 relevant lines | Keeps the main context small and cheap |
 | `.claude/hooks/format-edited.sh` | Formats only the file just edited. Never blocks Claude. Added only if the project has a formatter | Deterministic, and costs no model tokens |
 | Status line (global, terminal CLI) | `myapp \| Opus (high) \| ctx 23% 234k \| $0.41 \| cache 91% \| 5h 24%`. Context turns yellow at 200k tokens and red at 350k. Not shown in the desktop app | See when to compact or clear |
 | `/opticlaude-setup` (global) | The bootstrap command, generated from [BOOTSTRAP-PROMPT.md](BOOTSTRAP-PROMPT.md) | |
 
-The skills are manual-only (`disable-model-invocation: true`), so they cost no context until you type them.
+`/go`, `/handoff` and `/lesson` are manual-only (`disable-model-invocation: true`), so they cost no context until you type them. `auto-lesson` can't be manual, because Claude has to start it, so its short description is always in context. To turn it off, delete `.claude/skills/auto-lesson/`.
 
 ## Script options
 
@@ -84,7 +86,7 @@ The skills are manual-only (`disable-model-invocation: true`), so they cost no c
 
 ## Uninstall
 
-- **Project:** delete `.claude/agents/log-digger.md`, `.claude/skills/{go,handoff,lesson}` and `.claude/hooks/format-edited.sh`. Remove the kit's lines from `.gitignore` and `.gitattributes`. To get your old settings back, restore `.claude/settings.json` from `.claude/backup/`.
+- **Project:** delete `.claude/agents/{log-digger,lesson-finder}.md`, `.claude/skills/{go,handoff,lesson,auto-lesson}` and `.claude/hooks/format-edited.sh`. Remove the kit's lines from `.gitignore` and `.gitattributes`. To get your old settings back, restore `.claude/settings.json` from `.claude/backup/`.
 - **User:** delete `~/.claude/statusline.ps1` (or `.sh`), the `statusLine` key in `~/.claude/settings.json`, and `~/.claude/skills/opticlaude-setup/`.
 
 ## Tests

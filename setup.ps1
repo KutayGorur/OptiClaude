@@ -4,8 +4,9 @@
 
 .DESCRIPTION
   Project mode (-Target): copies the lean Claude Code setup into a project:
-    CLAUDE.md template, .claude/settings.json (secret-file deny rules), the log-digger agent,
-    the /go, /handoff and /lesson skills, and a format hook script.
+    CLAUDE.md template, .claude/settings.json (secret-file deny rules), the log-digger and
+    lesson-finder agents, the /go, /handoff and /lesson skills, the auto-lesson skill, and a
+    format hook script.
     It also adds local-only files to .gitignore and *.sh line endings to .gitattributes (git repos only).
   Global mode (-Global): installs into your user folder (~/.claude):
     the status line script plus its settings entry, and the /opticlaude-setup skill

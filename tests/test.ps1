@@ -31,8 +31,9 @@ function StatusLine([string]$fixture) {
     return ([System.IO.File]::ReadAllText((Join-Path $Fix $fixture)) | & $PS -NoProfile -ExecutionPolicy Bypass -File (Join-Path $Root 'templates\user\statusline.ps1') | Out-String)
 }
 
-$files = @('CLAUDE.md', '.claude\settings.json', '.claude\agents\log-digger.md', '.claude\hooks\format-edited.sh',
-    '.claude\skills\go\SKILL.md', '.claude\skills\handoff\SKILL.md', '.claude\skills\lesson\SKILL.md')
+$files = @('CLAUDE.md', '.claude\settings.json', '.claude\agents\log-digger.md', '.claude\agents\lesson-finder.md',
+    '.claude\hooks\format-edited.sh', '.claude\skills\go\SKILL.md', '.claude\skills\handoff\SKILL.md',
+    '.claude\skills\lesson\SKILL.md', '.claude\skills\auto-lesson\SKILL.md')
 
 try {
     Write-Output "== setup.ps1 ($PS)"
@@ -43,7 +44,7 @@ try {
 
     $fresh = Join-Path $Tmp 'fresh'; New-Item -ItemType Directory -Path $fresh | Out-Null
     Setup -Target $fresh | Out-Null
-    Check 'fresh project gets all 7 files' { @($files | Where-Object { -not (Test-Path -LiteralPath (Join-Path $fresh $_)) }).Count -eq 0 }
+    Check "fresh project gets all $($files.Count) files" { @($files | Where-Object { -not (Test-Path -LiteralPath (Join-Path $fresh $_)) }).Count -eq 0 }
     Check 'CLAUDE.md comes from the template' { (Get-FileHash (Join-Path $fresh 'CLAUDE.md')).Hash -eq (Get-FileHash (Join-Path $Root 'templates\project\CLAUDE.template.md')).Hash }
     $before = Snapshot $fresh; $out = Setup -Target $fresh
     Check 're-run changes nothing' { (Compare-Object @(Snapshot $fresh) @($before)) -eq $null }

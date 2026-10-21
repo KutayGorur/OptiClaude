@@ -3,9 +3,9 @@
 #
 # Project mode:  bash setup.sh --target /path/to/project
 #   Copies the lean Claude Code setup into the project: CLAUDE.md template, .claude/settings.json
-#   (secret-file deny rules), the log-digger agent, the /go, /handoff and /lesson skills, and a
-#   format hook script. In git repos it also adds local-only files to .gitignore and *.sh line
-#   endings to .gitattributes.
+#   (secret-file deny rules), the log-digger and lesson-finder agents, the /go, /handoff and
+#   /lesson skills, the auto-lesson skill, and a format hook script. In git repos it also adds
+#   local-only files to .gitignore and *.sh line endings to .gitattributes.
 # Global mode:   bash setup.sh --global [--user-dir ~/.claude]
 #   Installs the status line script plus its settings entry, and the /opticlaude-setup skill
 #   generated from BOOTSTRAP-PROMPT.md.

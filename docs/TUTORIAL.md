@@ -54,12 +54,14 @@ The desktop docs don't describe a per-session dollar readout. On a subscription,
 - Press **Esc Esc** to rewind, then re-prompt. Rewinding beats piling corrections on top.
 - After two failed corrections, run `/handoff`, then `/clear`, then `@.claude/handoff.md continue from this handoff`.
 - For large logs or test output, ask Claude to *"use log-digger on …"*.
+- When Claude fixes a mistake worth remembering, it saves a one-line lesson by itself (the `auto-lesson` skill) and tells you where. Check it with `git diff`, and undo it if you disagree.
 
 ### Finishing
 ```text
 /go             verify end to end, run /simplify, report evidence
 /go pr          the same, then commit and open a pull request
 /lesson <what went wrong>   record a mistake so it doesn't happen again (applies after /clear)
+/lesson         no argument: a Haiku subagent finds the recent mistakes and their fixes in the transcript
 ```
 
 ### Weekly
