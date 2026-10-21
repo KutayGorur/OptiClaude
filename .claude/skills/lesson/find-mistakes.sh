@@ -38,7 +38,7 @@ typed_only() { grep -v -e '"isMeta":true' | grep -v -E '"origin":\{"kind":"([^h]
 clean() { sed -e 's/\\\\/@BS@/g' -e 's/\\r//g' -e 's/\\n/ | /g' -e 's/\\t/ /g' -e 's/\\"/"/g' -e 's/@BS@/\\/g'; }
 # "name":"Bash","input":{...}  ->  Bash: {...}, without the JSON that follows the input
 call_text() {
-  grep -o '"name":"[^"]*","input":.\{0,'"$1"'\}' | head -n 1 \
+  grep -o '"name":"[^"]*","input":.*' | head -n 1 | cut -c1-"$1" \
     | sed -e 's/^"name":"\([^"]*\)","input":/\1: /' -e 's/},"caller":.*$/}/' -e 's/}],"[a-z_]*":.*$/}/' | clean
 }
 # Tool calls that only track progress; they are never the fix.
@@ -58,14 +58,14 @@ printf '%s\n' "$errors" | tail -n "$MAX_ERRORS" | while IFS= read -r hit; do
   id="$(printf '%s\n' "$hit" | grep -o '"is_error":true,"tool_use_id":"[^"]*"' | head -n 1 | sed 's/.*"tool_use_id":"//; s/"$//')"
   [ -n "$id" ] || id="$(printf '%s\n' "$hit" | grep -o '"tool_use_id":"[^"]*"' | head -n 1 | sed 's/.*:"//; s/"$//')"
   call=""
-  [ -n "$id" ] && call="$(grep -m 1 -F "\"id\":\"$id\"" "$f" | call_text 200)"
-  err="$(printf '%s\n' "$hit" | grep -o '"type":"tool_result","content":.\{0,320\}' | head -n 1 \
+  [ -n "$id" ] && call="$(grep -m 1 -F "\"id\":\"$id\"" "$f" | call_text 230)"
+  err="$(printf '%s\n' "$hit" | grep -o '"type":"tool_result","content":.*' | head -n 1 | cut -c1-350 \
     | sed -e 's/^"type":"tool_result","content":"//' -e 's/^"type":"tool_result","content":\[{"type":"text","text":"//' \
           -e 's/","is_error":.*$//' -e 's/"}],"is_error":.*$//' | clean)"
   echo "[line $n] ${call:-(call not found)}"
   echo "  error: $err"
   awk -v n="$n" -v skip="$BOOKKEEPING" 'NR > n && index($0, "\"type\":\"tool_use\"") && index($0, "{\"type\":\"api-") != 1 && !index($0, "\"isSidechain\":true") && $0 !~ skip { print; if (++c == 2) exit }' "$f" \
-    | while IFS= read -r next; do echo "  then: $(printf '%s\n' "$next" | call_text 140)"; done
+    | while IFS= read -r next; do echo "  then: $(printf '%s\n' "$next" | call_text 170)"; done
 done
 echo
 
@@ -77,7 +77,7 @@ echo "## What the user typed: the last $MAX_USER messages, oldest first"
   # Messages stored as blocks (for example text with an image), but not tool results
   grep -n '"type":"user","message":{"role":"user","content":\[' "$f" | main_only | typed_only | grep -v '"type":"tool_result"' \
     | while IFS= read -r line; do
-        t="$(printf '%s\n' "$line" | grep -o '"type":"text","text":".\{0,300\}' | head -n 1 | sed 's/^"type":"text","text":"//')"
+        t="$(printf '%s\n' "$line" | grep -o '"type":"text","text":".*' | head -n 1 | cut -c1-320 | sed 's/^"type":"text","text":"//')"
         [ -n "$t" ] && echo "${line%%:*} $t"
       done
 } | sed -e 's/^\([0-9]*\) \(\\n\)*/\1 /' | grep -v -E '^[0-9]+ <([^p]|p[^a])' | sort -n | tail -n "$MAX_USER" \

@@ -20,6 +20,7 @@ Starter kit for Claude Code projects. It has two installers, `setup.ps1` (Window
 - Never point a test or manual run at the real `~/.claude`. Use `-UserDir` / `--user-dir` with a temp folder.
 - `setup.ps1` must stay Windows PowerShell 5.1 compatible: no `??`, ternaries or `&&`.
 - `setup.sh` must run on macOS bash 3.2. Empty arrays under `set -u` need `${arr[@]+"${arr[@]}"}`.
+- macOS `grep` and `sed` reject regex repeat counts over 255, such as `.\{0,320\}`, even though GNU tools accept them. Use `.*` piped to `cut -c` instead.
 - On Git Bash for Windows, `grep` and `awk` silently drop CR characters. Use `tr` and `printf` for byte-exact checks.
 - `templates/project/CLAUDE.template.md` is installed as `CLAUDE.md`. It's named `.template` so Claude Code doesn't load it as instructions here.
 - `BOOTSTRAP-PROMPT.md` is the source of truth for `/opticlaude-setup`. After editing it, re-run `setup.ps1 -Global` to regenerate the installed skill.

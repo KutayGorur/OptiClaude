@@ -233,6 +233,9 @@ check "lesson-finder runs the digest script" grep -q 'skills/lesson/find-mistake
 echo "== find-mistakes.sh"
 FM="$SK/lesson/find-mistakes.sh"; TR="$FIX/transcript.jsonl"; SID=11111111-2222-3333-4444-555555555555
 lacks() { ! printf '%s' "$1" | grep -q -F -e "$2"; }
+# macOS grep and sed reject regex repeat counts over 255 (RE_DUP_MAX), such as .\{0,320\}.
+no_big_repeat() { ! grep -E '\\\{[0-9]*,?(25[6-9]|2[6-9][0-9]|[3-9][0-9][0-9]|[0-9]{4,})\\\}' "$1"; }
+check "digest: no regex repeat count over 255" no_big_repeat "$FM"
 d="$(bash "$FM" "$TR" 2>&1)"; rc=$?
 check "digest: reads a transcript path" test "$rc" -eq 0
 check "digest: counts only main-conversation errors" has_line "$d" '^## Failed tool calls: 1 in the session'
