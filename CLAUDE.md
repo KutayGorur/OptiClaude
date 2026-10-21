@@ -25,6 +25,9 @@ Starter kit for Claude Code projects. It has two installers, `setup.ps1` (Window
 - `BOOTSTRAP-PROMPT.md` is the source of truth for `/opticlaude-setup`. After editing it, re-run `setup.ps1 -Global` to regenerate the installed skill.
 - Keep every `$` out of the `BOOTSTRAP-PROMPT.md` body. Claude Code expands `$ARGUMENTS`, `$1` and `${...}` in skill text when the skill runs, so put such text in a template file (as `templates/snippets/format-hook.json` does). `tests/test.sh` enforces this.
 - `.sh` files must keep LF line endings (`.gitattributes`). The installers treat CRLF-only differences as unchanged.
+- `find-mistakes.sh` parses Claude Code's internal, undocumented transcript format. `tests/fixtures/transcript.jsonl` mirrors that format, so if real transcripts change shape, update the fixture along with the script.
+- In Git Bash, an argument that starts with `/` gets rewritten into a Windows path before a native program sees it, so `claude -p "/lesson"` arrives as `C:/Program Files/Git/lesson`. Prefix such commands with `MSYS_NO_PATHCONV=1`.
+- To measure what a subagent costs, run it under `claude -p --output-format json` and read the Haiku entry in `modelUsage`. Pass `--no-session-persistence`, so the test sessions don't become the newest transcript.
 
 ## Conventions that differ from the defaults
 - No personal paths, names or emails in the repo. Examples use placeholders like `C:\code\myapp`.

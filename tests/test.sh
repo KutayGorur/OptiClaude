@@ -47,7 +47,7 @@ MODES+=(none)
 
 PROJECT_FILES=(CLAUDE.md .claude/settings.json .claude/agents/log-digger.md .claude/agents/lesson-finder.md
   .claude/hooks/format-edited.sh .claude/skills/go/SKILL.md .claude/skills/handoff/SKILL.md
-  .claude/skills/lesson/SKILL.md .claude/skills/auto-lesson/SKILL.md)
+  .claude/skills/lesson/SKILL.md .claude/skills/lesson/find-mistakes.sh .claude/skills/auto-lesson/SKILL.md)
 
 for MODE in "${MODES[@]}"; do
   echo "== setup.sh (JSON tool: $MODE)"
@@ -107,7 +107,7 @@ for MODE in "${MODES[@]}"; do
   fi
   check ".gitignore keeps old lines" grep -qx 'node_modules/' "$P/.gitignore"
   check ".gitignore gets kit lines once" test "$(grep -cx '.claude/handoff.md' "$P/.gitignore")" -eq 1
-  check ".gitattributes forces LF for hooks" grep -qx '.claude/hooks/\*.sh text eol=lf' "$P/.gitattributes"
+  check ".gitattributes forces LF for .claude scripts" grep -qxF '.claude/**/*.sh text eol=lf' "$P/.gitattributes"
 
   # Global install into a fake user folder
   U="$W/home"; setup --global --user-dir "$U" >/dev/null
@@ -215,14 +215,50 @@ check "auto-lesson is hidden from the / menu" grep -qx 'user-invocable: false' "
 check "auto-lesson has no \$ tokens to expand" bash -c "test -f '$AUTO' && ! grep -q '[\$]' '$AUTO'"
 check "auto-lesson names a section lesson has" bash -c "grep -q '\"Saving a lesson\" section' '$AUTO' && grep -qx '## Saving a lesson' '$LESSON'"
 check "lesson uses lesson-finder" grep -q '`lesson-finder` subagent' "$LESSON"
-check "lesson passes the session ID" grep -qF 'session ID: ${CLAUDE_SESSION_ID}' "$LESSON"
+check "lesson gives lesson-finder the digest command" grep -qF 'bash "${CLAUDE_SKILL_DIR}/find-mistakes.sh" ${CLAUDE_SESSION_ID}' "$LESSON"
 check "lesson-finder exists" test -f "$FINDER"
 check "lesson-finder name matches its file" grep -qx 'name: lesson-finder' "$FINDER"
-check "lesson-finder runs on haiku" grep -qx 'model: haiku' "$FINDER"
-check "lesson-finder can't edit files" bash -c "grep -q '^tools: ' '$FINDER' && ! grep -E '^tools: .*(Edit|Write)' '$FINDER'"
+# Cost controls: a small model, low effort, a turn cap, and no write tools.
+for a in "$FINDER" "$AG/log-digger.md"; do
+  n="$(basename "$a" .md)"
+  check "$n runs on haiku" grep -qx 'model: haiku' "$a"
+  check "$n uses low effort" grep -qx 'effort: low' "$a"
+  check "$n has a turn limit" grep -qE '^maxTurns: [1-9][0-9]*$' "$a"
+  check "$n can't edit files" bash -c "grep -q '^tools: ' '$a' && ! grep -E '^tools: .*(Edit|Write)' '$a'"
+done
+check "lesson-finder only gets Bash" grep -qx 'tools: Bash' "$FINDER"
+check "lesson-finder starts without CLAUDE.md" grep -qx 'omitClaudeMd: true' "$FINDER"
+check "lesson-finder runs the digest script" grep -q 'skills/lesson/find-mistakes.sh' "$FINDER"
+
+echo "== find-mistakes.sh"
+FM="$SK/lesson/find-mistakes.sh"; TR="$FIX/transcript.jsonl"; SID=11111111-2222-3333-4444-555555555555
+lacks() { ! printf '%s' "$1" | grep -q -F -e "$2"; }
+d="$(bash "$FM" "$TR" 2>&1)"; rc=$?
+check "digest: reads a transcript path" test "$rc" -eq 0
+check "digest: counts only main-conversation errors" has_line "$d" '^## Failed tool calls: 1 in the session'
+check "digest: shows the call that failed" has_line "$d" '^\[line 4\] Bash: \{"command":"npm test"\}$'
+check "digest: shows the error text" has_line "$d" "error: Exit code 1 \| Error: Cannot find module 'left-pad'"
+check "digest: shows the call that came next" has_line "$d" 'then: Bash: \{"command":"npm ci && npm test"\}$'
+check "digest: skips bookkeeping calls" lacks "$d" 'TodoWrite'
+check "digest: skips request copies and sidechains" bash -c "! printf '%s' \"\$1\" | grep -q -e 'request copy' -e 'sidechain error'" _ "$d"
+check "digest: includes typed corrections" has_line "$d" "^\[line 8\] No, don't use npm ci here"
+check "digest: includes text sent with an image" has_line "$d" '^\[line 13\] Still failing, see the screenshot$'
+check "digest: keeps escaped Windows paths intact" has_line "$d" '^\[line 14\] The config lives in C:\\repo\\tools\\new\.json$'
+check "digest: skips injected skill text" lacks "$d" 'Base directory for this skill'
+check "digest: skips task notifications" lacks "$d" 'task-notification'
+check "digest: skips messages from other agents" lacks "$d" 'Another session sent'
+check "digest: keeps every line short" bash -c "printf '%s\n' \"\$1\" | awk 'length > 420 { bad = 1 } END { exit bad }'" _ "$d"
+CFG="$TMP/claude-config"; mkdir -p "$CFG/projects/p1"; cp "$TR" "$CFG/projects/p1/$SID.jsonl"
+d="$(CLAUDE_CONFIG_DIR="$CFG" bash "$FM" "$SID" 2>&1)"
+check "digest: finds a transcript by session ID" has_line "$d" "^Transcript: .*/projects/p1/$SID\.jsonl "
+d="$(CLAUDE_CONFIG_DIR="$CFG" bash "$FM" '${CLAUDE_SESSION_ID}' 2>&1)"
+check "digest: an unexpanded placeholder falls back to the newest transcript" \
+  bash -c "printf '%s' \"\$1\" | grep -q '^note: no transcript found' && printf '%s' \"\$1\" | grep -q '/projects/p1/$SID\.jsonl'" _ "$d"
+CLAUDE_CONFIG_DIR="$TMP/no-config" bash "$FM" "$SID" >/dev/null 2>&1; rc=$?
+check "digest: exits 1 when there is no transcript" test "$rc" -eq 1
 
 echo "== syntax"
-for f in "$ROOT/setup.sh" "$SLS" "$HOOK" "$ROOT/tests/test.sh"; do check "bash -n $(basename "$f")" bash -n "$f"; done
+for f in "$ROOT/setup.sh" "$SLS" "$HOOK" "$FM" "$ROOT/tests/test.sh"; do check "bash -n $(basename "$f")" bash -n "$f"; done
 
 echo
 echo "passed: $PASS  failed: $FAIL"

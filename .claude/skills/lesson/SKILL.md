@@ -7,7 +7,7 @@ argument-hint: "[what went wrong]"
 Record a lesson. What went wrong: $ARGUMENTS
 
 ## Finding the mistake
-- **If nothing follows "What went wrong:" above**, don't reconstruct the mistakes yourself. Start the `lesson-finder` subagent and give it this session ID: ${CLAUDE_SESSION_ID}
+- **If nothing follows "What went wrong:" above**, don't reconstruct the mistakes yourself. Start the `lesson-finder` subagent with this as its whole prompt: `Run: bash "${CLAUDE_SKILL_DIR}/find-mistakes.sh" ${CLAUDE_SESSION_ID}`
   - It returns up to 3 candidate lessons. Check each against what you remember of this session, and drop any that are wrong or not worth keeping.
   - If it found nothing worth keeping, say so and stop.
 - **Otherwise** the user told you the problem. Work out its fix from the last few turns.

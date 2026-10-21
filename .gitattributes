@@ -2,4 +2,4 @@
 # Shell scripts must keep LF endings or bash fails on Windows checkouts (core.autocrlf=true).
 *.sh text eol=lf
 # Claude Code (OptiClaude starter kit)
-.claude/hooks/*.sh text eol=lf
+.claude/**/*.sh text eol=lf

@@ -182,7 +182,7 @@ function Install-Project([string]$targetDir) {
 
     if (Test-Path -LiteralPath (Join-Path $targetFull '.git')) {
         Add-Lines (Join-Path $targetFull '.gitignore') @('.claude/settings.local.json', '.claude/handoff.md', '.claude/backup/') '.gitignore'
-        Add-Lines (Join-Path $targetFull '.gitattributes') @('.claude/hooks/*.sh text eol=lf') '.gitattributes'
+        Add-Lines (Join-Path $targetFull '.gitattributes') @('.claude/**/*.sh text eol=lf') '.gitattributes'
     }
     else {
         $Log.Add('note             not a git repo: skipped .gitignore and .gitattributes')

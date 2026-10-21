@@ -33,7 +33,7 @@ function StatusLine([string]$fixture) {
 
 $files = @('CLAUDE.md', '.claude\settings.json', '.claude\agents\log-digger.md', '.claude\agents\lesson-finder.md',
     '.claude\hooks\format-edited.sh', '.claude\skills\go\SKILL.md', '.claude\skills\handoff\SKILL.md',
-    '.claude\skills\lesson\SKILL.md', '.claude\skills\auto-lesson\SKILL.md')
+    '.claude\skills\lesson\SKILL.md', '.claude\skills\lesson\find-mistakes.sh', '.claude\skills\auto-lesson\SKILL.md')
 
 try {
     Write-Output "== setup.ps1 ($PS)"
@@ -82,7 +82,7 @@ try {
     $gi = Get-Content -LiteralPath (Join-Path $p '.gitignore')
     Check '.gitignore keeps old lines' { $gi -contains 'node_modules/' }
     Check '.gitignore gets kit lines once' { @($gi | Where-Object { $_ -eq '.claude/handoff.md' }).Count -eq 1 }
-    Check '.gitattributes forces LF for hooks' { (Get-Content -LiteralPath (Join-Path $p '.gitattributes')) -contains '.claude/hooks/*.sh text eol=lf' }
+    Check '.gitattributes forces LF for .claude scripts' { (Get-Content -LiteralPath (Join-Path $p '.gitattributes')) -contains '.claude/**/*.sh text eol=lf' }
 
     $u = Join-Path $Tmp 'home'
     Setup -Global -UserDir $u | Out-Null

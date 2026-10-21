@@ -77,4 +77,4 @@ The desktop docs don't describe a per-session dollar readout. On a subscription,
 | `/opticlaude-setup` not listed | Restart Claude Code or run `/reload-skills` |
 | Still prompted for allowed commands | Accept the folder's trust dialog |
 | Format hook does nothing | Check that `/hooks` lists it, that the formatter is installed locally, and that the file's extension is in the hook's `case` list |
-| `$'\r': command not found` from a hook | The `.sh` file has CRLF line endings. Convert it to LF; the kit's `.gitattributes` line prevents this on new clones |
+| `$'\r': command not found` from a hook or `/lesson` | The `.sh` file has CRLF line endings. Convert it to LF; the kit's `.gitattributes` line prevents this on new clones |

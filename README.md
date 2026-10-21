@@ -59,13 +59,15 @@ It installs nothing and commits nothing. You can also skip the install and paste
 | `/handoff` | Writes `.claude/handoff.md`, so you can `/clear` and continue in a fresh context | Context quality drops as the window fills |
 | `/lesson [what went wrong]` | Saves a mistake and its fix as one line in the right place and keeps CLAUDE.md lean. With no argument, `lesson-finder` finds the recent mistakes for you | Mistakes don't repeat |
 | `auto-lesson` skill | Claude starts it on its own right after it fixes a mistake worth remembering (you corrected it, or the same approach failed twice). It saves the line and tells you in one line. Hidden from the `/` menu | You don't have to remember to run `/lesson` |
-| `lesson-finder` subagent | Haiku searches the session transcript for failed tool calls and your corrections, and returns up to 3 lessons, each with the fix that worked | The expensive model doesn't spend tokens digging |
-| `log-digger` subagent | Haiku reads big logs or test output and returns at most 30 relevant lines | Keeps the main context small and cheap |
+| `lesson-finder` subagent | Runs `find-mistakes.sh`, which turns the session transcript into a short digest (failed calls, the calls that came next, and your messages). Haiku reads only that digest and returns up to 3 lessons, each with the fix that worked | The expensive model doesn't spend tokens digging |
+| `log-digger` subagent | Haiku greps big logs or test output and returns at most 15 relevant lines and a 3-line diagnosis | Keeps the main context small and cheap |
 | `.claude/hooks/format-edited.sh` | Formats only the file just edited. Never blocks Claude. Added only if the project has a formatter | Deterministic, and costs no model tokens |
 | Status line (global, terminal CLI) | `myapp \| Opus (high) \| ctx 23% 234k \| $0.41 \| cache 91% \| 5h 24%`. Context turns yellow at 200k tokens and red at 350k. Not shown in the desktop app | See when to compact or clear |
 | `/opticlaude-setup` (global) | The bootstrap command, generated from [BOOTSTRAP-PROMPT.md](BOOTSTRAP-PROMPT.md) | |
 
 `/go`, `/handoff` and `/lesson` are manual-only (`disable-model-invocation: true`), so they cost no context until you type them. `auto-lesson` can't be manual, because Claude has to start it, so its short description is always in context. To turn it off, delete `.claude/skills/auto-lesson/`.
+
+Both subagents run on Haiku with `effort: low` and a `maxTurns` cap, can't edit files, and reply in a short, fixed shape, because the main model pays to read whatever they return. `lesson-finder` also starts without CLAUDE.md (`omitClaudeMd: true`), since the digest is all it needs.
 
 ## Script options
 

@@ -182,7 +182,7 @@ install_project() {
 
   if [ -e "$target/.git" ]; then
     add_lines "$target/.gitignore" ".gitignore" ".claude/settings.local.json" ".claude/handoff.md" ".claude/backup/"
-    add_lines "$target/.gitattributes" ".gitattributes" ".claude/hooks/*.sh text eol=lf"
+    add_lines "$target/.gitattributes" ".gitattributes" ".claude/**/*.sh text eol=lf"
   else
     LOG+=("note             not a git repo: skipped .gitignore and .gitattributes")
   fi
