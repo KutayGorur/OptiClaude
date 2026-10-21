@@ -1,2 +1,6 @@
 .DS_Store
 Thumbs.db
+# Claude Code (OptiClaude starter kit)
+.claude/settings.local.json
+.claude/handoff.md
+.claude/backup/

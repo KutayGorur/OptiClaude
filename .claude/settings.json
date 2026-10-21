@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bash tests/test.sh *)",
+      "Bash(powershell -NoProfile -ExecutionPolicy Bypass -File tests/test.ps1 *)",
+      "PowerShell(powershell -NoProfile -ExecutionPolicy Bypass -File tests/test.ps1 *)",
+      "Bash(powershell -NoProfile -ExecutionPolicy Bypass -File setup.ps1 -Target * -DryRun)",
+      "PowerShell(powershell -NoProfile -ExecutionPolicy Bypass -File setup.ps1 -Target * -DryRun)"
+    ],
+    "deny": [
+      "Read(.env)",
+      "Read(.env.*)",
+      "Read(!.env.example)",
+      "Read(!.env.sample)",
+      "Read(*.pem)",
+      "Read(secrets/**)"
+    ]
+  }
+}
