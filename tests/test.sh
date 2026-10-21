@@ -25,6 +25,8 @@ flip_eol() {
   fi
 }
 has_line() { printf '%s' "$1" | grep -q -E "$2"; }
+# Skill text must contain no "$": Claude Code expands $ARGUMENTS, $1 and ${VARS} in it when the skill runs.
+no_dollar() { ! grep -q '[$]' "$1"; }
 
 PY=""
 if command -v python3 >/dev/null 2>&1 && python3 -c 'import json' >/dev/null 2>&1; then PY=python3
@@ -113,6 +115,7 @@ for MODE in "${MODES[@]}"; do
   check "global: skill has this kit's path" grep -qxF "Kit folder: $KIT_PATH" "$U/skills/opticlaude-setup/SKILL.md"
   check "global: skill has no placeholder path" bash -c "! grep -qx 'Kit folder: <path to this repo>' '$U/skills/opticlaude-setup/SKILL.md'"
   check "global: skill is manual-only" grep -qx 'disable-model-invocation: true' "$U/skills/opticlaude-setup/SKILL.md"
+  check "global: skill has no \$ tokens to expand" no_dollar "$U/skills/opticlaude-setup/SKILL.md"
   if [ -n "$PY" ]; then
     check "global: settings.json has statusLine" json_eval "$U/settings.json" '"statusline" in d["statusLine"]["command"]'
   fi
@@ -181,6 +184,21 @@ rm -f "$H/marker"
 check "unconfigured hook does nothing and exits 0" bash -c "bash '$HOOK' < '$H/in.json' && test ! -e '$H/marker'"
 check "hook ignores bad input" bash -c "echo 'not json' | bash '$H/hook.sh'"
 check "hook ignores missing files" bash -c "printf '{\"tool_input\":{\"file_path\":\"/nope/x.ts\"}}' | bash '$H/hook.sh' && test ! -e '$H/marker'"
+
+echo "== bootstrap prompt and hook snippet"
+BODY="$TMP/prompt-body.txt"
+awk '/<!-- PROMPT END -->/{on=0} on{print} /<!-- PROMPT START -->/{on=1}' "$ROOT/BOOTSTRAP-PROMPT.md" > "$BODY"
+check "prompt body was extracted" test -s "$BODY"
+check "prompt body has no \$ tokens to expand" no_dollar "$BODY"
+SNIP="$ROOT/templates/snippets/format-hook.json"
+check "prompt points to the hook snippet" grep -q 'templates/snippets/format-hook.json' "$BODY"
+check "hook snippet exists" test -f "$SNIP"
+check "hook template the snippet runs exists" test -f "$ROOT/templates/project/.claude/hooks/format-edited.sh"
+if [ -n "$PY" ]; then
+  check "hook snippet is valid JSON" json_eval "$SNIP" 'isinstance(d, dict)'
+  check "hook snippet matches Edit|Write" json_eval "$SNIP" 'd["hooks"]["PostToolUse"][0]["matcher"] == "Edit|Write"'
+  check "hook snippet keeps the project-dir variable" json_eval "$SNIP" '"${CLAUDE_PROJECT_DIR}/.claude/hooks/format-edited.sh" in d["hooks"]["PostToolUse"][0]["hooks"][0]["command"]'
+fi
 
 echo "== syntax"
 for f in "$ROOT/setup.sh" "$SLS" "$HOOK" "$ROOT/tests/test.sh"; do check "bash -n $(basename "$f")" bash -n "$f"; done

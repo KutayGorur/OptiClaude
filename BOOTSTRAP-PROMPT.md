@@ -51,10 +51,7 @@ If the Kit folder line above still says `<path to this repo>`, ask the user wher
    - Keep the existing `deny` rules. If you saw other places that hold secrets, add deny rules for them, for example `Read(config/credentials/**)`.
 6. **Add a format hook, but only if the project has a formatter configured.**
    - In `.claude/hooks/format-edited.sh`, uncomment and adapt only the `case` lines for formatters this project actually uses. Call the project's own binaries, for example `npx --no-install prettier`, or `uv run ruff format` / `poetry run black` when that's how the project runs its tools.
-   - Then add this to `.claude/settings.json`:
-     ```json
-     "hooks": { "PostToolUse": [ { "matcher": "Edit|Write", "hooks": [ { "type": "command", "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/format-edited.sh\"", "timeout": 30 } ] } ] }
-     ```
+   - Read `<Kit folder>/templates/snippets/format-hook.json` and merge its `hooks` entry into `.claude/settings.json`. Copy the `command` string **exactly as it is in that file**: it refers to the project folder through a variable, so teammates and other machines can use it. Never replace it with an absolute path.
    - Test the hook: pipe `{"tool_input":{"file_path":"<absolute path of an already-formatted source file>"}}` into the script. Confirm it exits 0 and leaves the file unchanged.
    - On Windows without bash, write an equivalent PowerShell script instead, and set `"shell": "powershell"` on the hook.
    - If the project has no formatter, delete `format-edited.sh` and add no hook.

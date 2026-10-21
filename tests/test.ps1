@@ -92,6 +92,8 @@ try {
     Check "global: skill has this kit's path" { $skill -match ('(?m)^Kit folder: ' + [regex]::Escape($rootFwd) + '\s*$') }
     Check 'global: skill has no placeholder path' { $skill -notmatch '(?m)^Kit folder: <path to this repo>' }
     Check 'global: skill is manual-only' { $skill -match '(?m)^disable-model-invocation: true' }
+    # Claude Code expands $ARGUMENTS, $1 and ${VARS} in skill text when it runs, so the skill must contain no "$".
+    Check 'global: skill has no $ tokens to expand' { -not $skill.Contains('$') }
     $before = Snapshot $u; Setup -Global -UserDir $u | Out-Null
     Check 'global: re-run changes nothing' { (Compare-Object @(Snapshot $u) @($before)) -eq $null }
 
